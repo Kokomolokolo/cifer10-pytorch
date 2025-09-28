@@ -50,3 +50,5 @@ dataiter = iter(train_loader)
 images, labels = next(dataiter)
 img_grid = torchvision.utils.make_grid(images[0:25], nrow=5)
 imshow(img_grid)
+
+class 
