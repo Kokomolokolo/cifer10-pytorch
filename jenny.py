@@ -2,6 +2,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as f
+import torch.optim as optim
+import torch.optim.lr_scheduler as lr_scheduler
 import torchvision
 import torchvision.transforms as transforms
 import matplotlib.pyplot as plt
@@ -87,7 +89,7 @@ def create_model(device):
     model = Jenny().to(device)
     return model
 
-def train_epoch(model, train_loader, criterion, optimizer, device):
+def train_epoch(model, train_loader, criterion, optimizer ,device):
     model.train() # setzt das model wohl in den trainingszustand, wie das vorher gegangen ist idk
     running_loss = 0.0
     start_time = time.time()
@@ -109,7 +111,7 @@ def train_epoch(model, train_loader, criterion, optimizer, device):
     avg_loss = running_loss / len(train_loader)
     return avg_loss, epoch_time
 
-def train_model(model, train_loader, criterion, optimizer, device, num_epochs):
+def train_model(model, train_loader, criterion, optimizer, scheduler, device, num_epochs):
     print('Started Training')
     print("-" * 60)
 
@@ -117,7 +119,9 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs):
 
     for epoch in range(num_epochs):
         avg_loss, epoch_time = train_epoch(model, train_loader, criterion, optimizer, device)
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.3f}, Time: {epoch_time:.3f}")
+        scheduler.step()
+        curr_lr = optimizer.param_groups[0]["lr"]
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.3f}, Time: {epoch_time:.3f}, lr {curr_lr}")
     
     total_time = time.time()- total_start_time 
 
@@ -138,9 +142,10 @@ def main():
 
     model = create_model(device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+    optimizer = optim.Adam(model.parameters(), lr=config["learning_rate"])
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.5, total_iters=config["num_epochs"])
 
-    train_model(model, train_loader, criterion, optimizer, device, config["num_epochs"])
+    train_model(model, train_loader, criterion, optimizer,scheduler, device, config["num_epochs"])
 
     PATH = "./jenny.pth"
     print("Saving model to {PATH}")
